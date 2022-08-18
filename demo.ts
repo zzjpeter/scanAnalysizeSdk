@@ -1,6 +1,7 @@
 var fs = require("fs")
 var path = require("path")
 var process = require('process')
+const lineReader = require('line-reader');
 
 console.log("demo.ts");
 
@@ -38,8 +39,16 @@ function main() {
     let cwd = process.cwd()
     console.log(cwd);
     executeScanPath(cwd);
-
+    console.log(cwd);
+    //test();
     printTime(TimeType.end);
+}
+
+function test() {
+    var path = "/Users/peterzjzhu/Desktop/Tencent/app_dev/app_common/src/wemeet/module/account";
+    var modulePatternRe = g_module_pattern;
+    var modules = path.match(modulePatternRe);
+    console.log(modules);
 }
 
 function printTime(type: TimeType) {
@@ -53,18 +62,88 @@ function printTime(type: TimeType) {
 
 function executeScanPath(path: string) {
     let infoFilePath = g_key_file;
-    let fd = fs.writeSync(infoFilePath, "");
-    fs.closeSync(fd);
+    fs.writeFileSync(infoFilePath, "");
     scanPath(path, [".h", ".cc", ".cpp"])
 }
 
+/*
+    指定目录下递归遍历扫描所有的指定后缀的文件
+    path：目录
+    suffix：后缀 如[".h", ".cc", ".cpp"]
+*/
 function scanPath(path: string, suffixs: string[]) {
-    if fs.statSync
+    var stats = fs.statSync(path);
+    if (!stats.isDirectory()) {
+        console.log(path + " " + "不是目录");
+        return;
+    }
+    var files = fs.readdirSync(path); //得到文件夹下的所有文件，包含文件夹名称
+    for (const name of files) { // 遍历子目录
+        var fullPath = path + "/" + name;
+        stats = fs.statSync(fullPath);
+        if (stats.isDirectory()) { // 处理目录
+            scanPath(fullPath, suffixs); // 对所有子文件夹进行搜索
+        }else if(stats.isFile()) { // 处理文件
+            for (const suffix of suffixs) {
+                if (name.endsWith(suffix)) {
+                    scanFileContentWithPattern(path, name, g_key_pattern);
+                }
+            }
+        }else {
+            console.log("未知文件:" + name);
+        }
+    }
 }
 
-function test03(path: string) {
+/*
+    使用指定的匹配模式，扫描指定目录下，指定名称的文件 统计key使用信息，生成key使用文件
+    path：目录
+    name：文件名
+    pattern：匹配模式
+    content_record = name + " = " + str(lineNum) + " = " + content + " = " + module_current + " = " + path
+ */
+async function scanFileContentWithPattern(path: string, name: string, pattern: string) {
+    var fullPath = path + "/" + name;
+    var patternRe = pattern;
+    var modulePatternRe = g_module_pattern;
+    var moduleCurrent = g_module_wemeet;
+    var modules = path.match(modulePatternRe);
+    if (modules) {
+        moduleCurrent = modules[0];
+    }
 
+    var contentRecords: string[] = [];
+    const data = fs.readFileSync(fullPath, "utf-8");
+    const lines = data.split(/\r?\n|\r/);
+    var lineNum = 0;
+    lines.forEach((line: string) => {
+       lineNum++;
+        var contents = line.match(patternRe);
+        if (contents) {
+            contents.forEach(function (content) {
+                const contentRecord = name + " = " + lineNum + " = " + content + " = " + moduleCurrent + " = " + path + "\n";
+                contentRecords.push(contentRecord);
+            });
+        }
+    });
+    fs.appendFileSync(g_key_file, contentRecords.join(""));
 }
 
+function excuteScanGenerateResult(path: string) {
+    const resultFilePath = g_result_file
+    const resultDeleteFilePath = g_result_delete_file
+    const resultMoveFilePath = g_result_move_file
+    fs.writeFileSync(resultFilePath, "");
+    fs.writeFileSync(resultDeleteFilePath, "");
+    fs.writeFileSync(resultMoveFilePath, "");
+}
+
+/*
+# 扫描指定目录下，指定后缀，指定名称的文件，并扫描该文件的内容
+# path：目录
+# name：文件名
+# suffixs：后缀
+ */
+def scanPathXml(path, filename, suffixs):
 
 main();
