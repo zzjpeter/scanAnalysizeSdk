@@ -1,7 +1,6 @@
 var fs = require("fs")
 var path = require("path")
 var process = require('process')
-const lineReader = require('line-reader');
 
 console.log("demo.ts");
 
@@ -113,7 +112,7 @@ function scanPath(path: string, suffixs: string[]) {
  */
 function scanFileContentWithPattern(path: string, name: string, pattern: string) {
     var fullPath = path + "/" + name;
-    var patternRe = pattern;
+    var patternRe = new RegExp(pattern, "g");
     var modulePatternRe = g_module_pattern;
     var moduleCurrent = g_module_wemeet;
     var modules = path.match(modulePatternRe);
@@ -187,7 +186,7 @@ function scanPathXml(path: string, filename: string, suffixs: string[]) {
 
 function scanFileContentXmlWithPattern(path: string, name: string) {
     var fullPath = path + "/" + name;
-    var modulePatternRe = g_module_pattern;
+    var modulePatternRe = new RegExp(g_module_pattern, "g");
     var moduleCurrent = g_module_wemeet;
     var modules = path.match(modulePatternRe);
     if (modules) {
