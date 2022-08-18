@@ -21,10 +21,12 @@ let g_module_pattern_contain_suffix_common = "[1-9a-zA-Z]*";
 let g_module_pattern_key = "\"([1-9a-zA-Z])+\"";
 let g_module_wemeet_module_prefix = "WR::Str::k";
 let g_module_sub_module_prefix = "WA::Str::k";
-let g_key_file = "./key.txt";
-let g_result_file = "./result.txt";
-let g_result_delete_file = "./result_delete.txt";
-let g_result_move_file = "./result_move.txt";
+let g_result_folder = "result";
+let g_restul_folder_prefix = "./"+ g_result_folder + "/";
+let g_key_file = g_restul_folder_prefix + "key.txt";
+let g_result_file = g_restul_folder_prefix + "result.txt";
+let g_result_delete_file = g_restul_folder_prefix + "result_delete.txt";
+let g_result_move_file = g_restul_folder_prefix + "result_move.txt";
 let g_module_strings_xml_pattern = "strings[-a-z]*.xml";
 let g_module_asset_strings = "/asset/strings/";
 let g_module_strings_xml_pattern_end_flag = "</string>";
@@ -35,6 +37,10 @@ function main() {
 
     console.log("main");
     process.chdir(g_root_path);
+    const resultFolder = path.join(g_root_path, g_result_folder);
+    if (!fs.existsSync(resultFolder)) {
+        fs.mkdirSync(resultFolder)
+    }
     const cwd = process.cwd()
     console.log(cwd);
     executeScanPath(cwd);
