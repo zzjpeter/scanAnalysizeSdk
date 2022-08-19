@@ -43,7 +43,7 @@ function main() {
     }
     const cwd = process.cwd()
     console.log(cwd);
-    executeScanPath(cwd);
+    executeScanPathGenerateKeyUseInfo(cwd);
     excuteScanGenerateResult(cwd);
     console.log(cwd);
     // test();
@@ -72,7 +72,7 @@ function printTime(type: TimeType) {
     console.log(info + ": " + time);
 }
 
-function executeScanPath(path: string) {
+function executeScanPathGenerateKeyUseInfo(path: string) {
     let infoFilePath = g_key_file;
     fs.writeFileSync(infoFilePath, "");
     const suffixs = [".h", ".cc", ".cpp"];
