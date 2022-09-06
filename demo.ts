@@ -2,42 +2,33 @@ var fs = require("fs")
 var path = require("path")
 var process = require('process')
 
-console.log("demo.ts");
-
 //定义
 enum TimeType {
     begin,
     end
 }
-let g_root_path = "/Users/peterzjzhu/Desktop/Tencent/app_dev/app_common";
-let g_module_wemeet = "wemeet";
-let g_module_block_ui_dir = "ui"; // 过滤模块中的上层ui目录（各端上层使用的strings.xml文件） 【如：/Users/peterzjzhu/Desktop/Tencent/app/app_common/src/wemeet/components/webview/ui/Android/src/main/res/values/strings.xml】
-let g_key_pattern_with_whitespace_whiteline = "W[A|R]\s*::\s*Str\s*::\s*k[1-9a-zA-Z]*"; // for check 不规范使用的key(也即带空格/换行的)
-let g_key_pattern = "W[A|R]::Str::k[1-9a-zA-Z]*";
-let g_module_pattern = "wemeet\/module\/[a-z_A-Z]*\/";
-let g_module_pattern_wemeet_module = "WR::Str::k[1-9a-zA-Z]*";
-let g_module_pattern_sub_module = "WA::Str::k[1-9a-zA-Z]*";
-let g_module_pattern_contain_suffix_common = "[1-9a-zA-Z]*";
-let g_module_pattern_key = "\"([1-9a-zA-Z])+\"";
-let g_module_wemeet_module_prefix = "WR::Str::k";
-let g_module_sub_module_prefix = "WA::Str::k";
-let g_result_folder = "result";
-let g_restul_folder_prefix = "./"+ g_result_folder + "/";
-let g_key_file = g_restul_folder_prefix + "key.txt";
-let g_result_file = g_restul_folder_prefix + "result.txt";
-let g_result_delete_file = g_restul_folder_prefix + "result_delete.txt";
-let g_result_move_file = g_restul_folder_prefix + "result_move.txt";
-let g_module_strings_xml_pattern = "strings[-a-z]*.xml";
-let g_module_asset_strings = "/asset/strings/";
-let g_module_strings_xml_pattern_end_flag = "</string>";
-let g_module_BEGIN_NAMESPACE_prefix_pattern = "BEGIN_NAMESPACE_";
+let gRootPath = "/Users/peterzjzhu/Desktop/Tencent/app_dev/app_common";
+let gFileSuffixs = [".h", ".cc", ".cpp"];
+let gStringsXmlFileName = "strings.xml";
+let gStringsXmlFileSuffixs = ["xml"];
+let gModuleWemeet = "wemeet";
+let gModuleBlockUiDir = "ui"; // 过滤模块中的上层ui目录（各端上层使用的strings.xml文件） 【如：/Users/peterzjzhu/Desktop/Tencent/app/app_common/src/wemeet/components/webview/ui/Android/src/main/res/values/strings.xml】
+let gKeyPattern = "W[A|R]::Str::k[1-9a-zA-Z]*";
+let gModulePattern = "wemeet\/module\/[a-z_A-Z]*\/";
+let gModulePatternKey = "\"([1-9a-zA-Z])+\"";
+let gModuleWemeetModulePrefix = "WR::Str::k";
+let gModuleSubModulePrefix = "WA::Str::k";
+let gResultfolder = "result";
+let gRestulFolderPrefix = "./"+ gResultfolder + "/";
+let gKeyFile = gRestulFolderPrefix + "key.txt";
+let gResultFile = gRestulFolderPrefix + "result.txt";
+let gResultDeleteFile = gRestulFolderPrefix + "result_delete.txt";
+let gResultMoveFile = gRestulFolderPrefix + "result_move.txt";
 
 function main() {
     printTime(TimeType.begin);
-
-    console.log("main");
-    process.chdir(g_root_path);
-    const resultFolder = path.join(g_root_path, g_result_folder);
+    process.chdir(gRootPath);
+    const resultFolder = path.join(gRootPath, gResultfolder);
     if (!fs.existsSync(resultFolder)) {
         fs.mkdirSync(resultFolder)
     }
@@ -46,21 +37,7 @@ function main() {
     executeScanPathGenerateKeyUseInfo(cwd);
     excuteScanGenerateResult(cwd);
     console.log(cwd);
-    // test();
     printTime(TimeType.end);
-}
-
-function test() {
-    // var path = "/Users/peterzjzhu/Desktop/Tencent/app_dev/app_common/src/wemeet/module/account";
-    // var modulePatternRe = g_module_pattern;
-    // var modules = path.match(modulePatternRe);
-    // console.log(modules);
-
-    // const s1 = "javascript";
-    // const s2 = "Javascript";
-    // console.log(s1 === s2); // false
-
-
 }
 
 function printTime(type: TimeType) {
@@ -73,9 +50,9 @@ function printTime(type: TimeType) {
 }
 
 function executeScanPathGenerateKeyUseInfo(path: string) {
-    let infoFilePath = g_key_file;
+    let infoFilePath = gKeyFile;
     fs.writeFileSync(infoFilePath, "");
-    const suffixs = [".h", ".cc", ".cpp"];
+    const suffixs = gFileSuffixs;
     scanPath(path, suffixs);
 }
 
@@ -99,12 +76,11 @@ function scanPath(path: string, suffixs: string[]) {
         }else if(stats.isFile()) { // 处理文件
             for (const suffix of suffixs) {
                 if (name.endsWith(suffix)) {
-                    scanFileContentWithPattern(path, name, g_key_pattern);
+                    scanFileContentWithPattern(path, name, gKeyPattern);
                 }
             }
         }else {
-            const path_full = path + "/" + name
-            console.log("建议先clean 未知文件:" + name + " " + path_full);
+            console.log("建议先clean 未知文件:" + name + " " + fullPath);
         }
     }
 }
@@ -114,13 +90,13 @@ function scanPath(path: string, suffixs: string[]) {
     path：目录
     name：文件名
     pattern：匹配模式
-    content_record = name + " = " + str(lineNum) + " = " + content + " = " + module_current + " = " + path
+    contentRecord = name + " = " + lineNum + " = " + content + " = " + moduleCurrent + " = " + path
  */
 function scanFileContentWithPattern(path: string, name: string, pattern: string) {
     var fullPath = path + "/" + name;
     var patternRe = new RegExp(pattern, "g");
-    var modulePatternRe = g_module_pattern;
-    var moduleCurrent = g_module_wemeet;
+    var modulePatternRe = gModulePattern;
+    var moduleCurrent = gModuleWemeet;
     var modules = path.match(modulePatternRe);
     if (modules) {
         moduleCurrent = modules[0];
@@ -140,19 +116,19 @@ function scanFileContentWithPattern(path: string, name: string, pattern: string)
             });
         }
     });
-    fs.appendFileSync(g_key_file, contentRecords.join(""));
+    fs.appendFileSync(gKeyFile, contentRecords.join(""));
 }
 
 function excuteScanGenerateResult(path: string) {
-    const resultFilePath = g_result_file
-    const resultDeleteFilePath = g_result_delete_file
-    const resultMoveFilePath = g_result_move_file
+    const resultFilePath = gResultFile
+    const resultDeleteFilePath = gResultDeleteFile
+    const resultMoveFilePath = gResultMoveFile
     fs.writeFileSync(resultFilePath, "");
     fs.writeFileSync(resultDeleteFilePath, "");
     fs.writeFileSync(resultMoveFilePath, "");
 
-    const fileName = "strings.xml";
-    const suffixs = ["xml"];
+    const fileName = gStringsXmlFileName;
+    const suffixs = gStringsXmlFileSuffixs;
     scanPathXml(path, fileName, suffixs);
 }
 
@@ -173,7 +149,7 @@ function scanPathXml(path: string, filename: string, suffixs: string[]) {
         var fullPath = path + "/" + name;
         stats = fs.statSync(fullPath);
         if (stats.isDirectory()) { // 处理目录
-            if (name == g_module_block_ui_dir) {
+            if (name == gModuleBlockUiDir) {
                 continue;
             }
             scanPathXml(fullPath, filename, suffixs); // 对所有子文件夹进行搜索
@@ -184,21 +160,20 @@ function scanPathXml(path: string, filename: string, suffixs: string[]) {
                 }
             }
         }else {
-            const path_full = path + "/" + name
-            console.log("建议先clean 未知文件:" + name + " " + path_full);
+            console.log("建议先clean 未知文件:" + name + " " + fullPath);
         }
     }
 }
 
 function scanFileContentXmlWithPattern(path: string, name: string) {
     var fullPath = path + "/" + name;
-    var modulePatternRe = new RegExp(g_module_pattern, "g");
-    var moduleCurrent = g_module_wemeet;
+    var modulePatternRe = new RegExp(gModulePattern, "g");
+    var moduleCurrent = gModuleWemeet;
     var modules = path.match(modulePatternRe);
     if (modules) {
         moduleCurrent = modules[0];
     }
-    var moduleKeyPatternRe = g_module_pattern_key;
+    var moduleKeyPatternRe = gModulePatternKey;
 
     const data = fs.readFileSync(fullPath, "utf-8");
     const lines = data.split(/\r?\n|\r/);
@@ -227,18 +202,18 @@ function scanFileContentXmlWithPattern(path: string, name: string) {
 */
 function contentKeyUseStatusInModule(path: string, name: string, contentKey: string, module: string) {
     var moduleCurrent = module;
-    const moduleWemeet = g_module_wemeet;
+    const moduleWemeet = gModuleWemeet;
     var content = contentKey;
     contentKey = content.replace(/\"/g, ''); // 去除'"'
     contentKey = contentKey.substr(0, 1).toUpperCase() + contentKey.substring(1);
-    var modulePrefix = g_module_wemeet_module_prefix;
+    var modulePrefix = gModuleWemeetModulePrefix;
     if (moduleCurrent != moduleWemeet) {
-        modulePrefix = g_module_sub_module_prefix;
+        modulePrefix = gModuleSubModulePrefix;
     }
     const contentKeyRe = modulePrefix + contentKey;
 
     var searchResults: string[] = [];
-    const data = fs.readFileSync(g_key_file, "utf-8");
+    const data = fs.readFileSync(gKeyFile, "utf-8");
     const lines = data.split(/\r?\n|\r/);
     var lineNum = 0;
     lines.forEach((contentLine: string) => { // 判断contentKey 是否在 key结果文件中存在
@@ -300,13 +275,13 @@ function contentKeyUseStatusInModule(path: string, name: string, contentKey: str
         resultDeleteStrs.push(resultStr);
     }
     if (resultStrs.length > 0) {
-        fs.appendFileSync(g_result_file, resultStrs.join(""));
+        fs.appendFileSync(gResultFile, resultStrs.join(""));
     }
     if (resultDeleteStrs.length > 0) {
-        fs.appendFileSync(g_result_delete_file, resultDeleteStrs.join(""));
+        fs.appendFileSync(gResultDeleteFile, resultDeleteStrs.join(""));
     }
     if (resultMoveStrs.length > 0) {
-        fs.appendFileSync(g_result_move_file, resultMoveStrs.join(""));
+        fs.appendFileSync(gResultMoveFile, resultMoveStrs.join(""));
     }
 }
 
