@@ -1,6 +1,5 @@
-import { WeMeetResCheck } from "./checkXmlStringsInUseInfo";
+import { WeMeetResCheck } from "./scanAnalysizeSdk";
 
-var gHandlePath = "/Users/peterzjzhu/Desktop/Tencent/app_dev/app_common";
+const gHandlePath = "/Users/peterzjzhu/Downloads/TMSDK_MacOS_3/SDK/TMSDK.framework";
 
-
-WeMeetResCheck.CheckXml.checkXmlStringsInUseInfo(gHandlePath);
+WeMeetResCheck.CheckXml.scanAnalysizeSdk(gHandlePath);
