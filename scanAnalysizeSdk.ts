@@ -14,11 +14,13 @@ let gRestulFolderPrefix = "./"+ gResultfolder + "/";
 let gInfoFile = gRestulFolderPrefix + "info.txt";
 let gShellCmdFile = gRestulFolderPrefix + "scanAnalysizeShellCmdExecute.log";
 let gInfoSeperates = /:|;|\n/;
+let gInfoLinker = ": ";
 let gFilesInfo:Array<string> = [];
 let gFilesFormatInfo:Array<string> = [];
 let gExtnameSet = new Set();
 let gExtnameMap = new Map(); //{type: [type,num,totalSize]}
 let gRepeatFileInfoMap = new Map(); //{name: [name,num,totalSize]}
+let gTotalSize = 0;//文件总大小 单位B字节
 //文件分类 43项
 let extnames = [
     ' application/octet-stream',
@@ -99,7 +101,7 @@ export namespace WeMeetResCheck.CheckXml {
         if (type == TimeType.end) {
             info = "endTime";
         }
-        console.log(info + ": " + time);
+        console.log(info + gInfoLinker + time);
     }
 
     function executeScanPathGenerateKeyUseInfo(path: string) {
@@ -111,8 +113,8 @@ export namespace WeMeetResCheck.CheckXml {
         console.log("日志信息：");
         console.log(
             "1、按文件大小输出：name + :  + size + :  + type  //名称 + 文件大小 + 文件类型\n" +
-            "2、按文件名输出：name + :  + num + :  + totalSize  //名称 + 该文件数量 + 该文件总大小\n" +
-            "3、按文件类型输出：type + :  + num + :  + totalSize  //类型 + 该类文件总数量 + 该类文件总大小\n"
+            "2、按文件名输出：name + :  + num + :  + totalSize + : + percent  //名称 + 该文件数量 + 该文件总大小 + 占比\n" +
+            "3、按文件类型输出：type + :  + num + :  + totalSize + : + percent  //类型 + 该类文件总数量 + 该类文件总大小 + 占比\n"
         )
         //1、按文件大小输出：name + :  + size + :  + type  //名称 + 文件大小 + 文件类型
         console.log("1、按文件大小输出：name + :  + size + :  + type  //名称 + 文件大小 + 文件类型\n");
@@ -123,23 +125,26 @@ export namespace WeMeetResCheck.CheckXml {
             let itemTotalSize = Number(items[1]);
             let formatSize = formatBytes(itemTotalSize, 2);
             items[1] = formatSize;
-            let info = items.join(":");
+            let percent = itemTotalSize/gTotalSize;
+            items[3] = percent.toString();
+            let info = items.join(gInfoLinker);
             console.log(info);
             gFilesFormatInfo.push(info);
         }
         console.log(gFilesFormatInfo);
 
-        //3、按文件名输出：name + ": " + num + ": " + totalSize  //名称 + 该文件数量 + 该文件总大小
-        console.log("2、按文件名输出：name + :  + num + :  + totalSize  //名称 + 该文件数量 + 该文件总大小\n");
+        //3、按文件名输出：name + :  + num + :  + totalSize + : + percent  //名称 + 该文件数量 + 该文件总大小 + 占比
+        console.log("2、按文件名输出：name + :  + num + :  + totalSize + : + percent  //名称 + 该文件数量 + 该文件总大小 + 占比\n");
         var itemFileInfos = Array.from(gRepeatFileInfoMap.values());
-        var sortItemFileInfos = itemFileInfos.sort(sortBySize);
+        var sortItemFileInfos = itemFileInfos.sort(sortByNum);
         //console.log(sortItems);
         for(let item of sortItemFileInfos) {
-            let name = item[0];
-            let itemTotalNum = item[1];
             let itemTotalSize = item[2];
             let itemTotalFromatSize = formatBytes(itemTotalSize, 2);
-            let info = name + ": " + itemTotalNum + ": " + itemTotalFromatSize;
+            item[2] = itemTotalFromatSize;
+            let percent = itemTotalSize/gTotalSize;
+            item[3] = percent.toString();
+            let info = item.join(gInfoLinker);
             console.log(info);
         }
 
@@ -147,19 +152,23 @@ export namespace WeMeetResCheck.CheckXml {
         console.log("3、输出文件类型:\n");
         console.log(gExtnameSet);
 
-        //2、按文件类型输出：type + ": " + num + ": " + totalSize  //类型 + 该类文件总数量 + 该类文件总大小
-        console.log("4、按文件类型输出：type + :  + num + :  + totalSize  //类型 + 该类文件总数量 + 该类文件总大小\n");
+        //2、按文件类型输出：type + :  + num + :  + totalSize + : + percent  //类型 + 该类文件总数量 + 该类文件总大小 + 占比
+        console.log("4、按文件类型输出：type + :  + num + :  + totalSize + : + percent  //类型 + 该类文件总数量 + 该类文件总大小 + 占比\n");
         var items = Array.from(gExtnameMap.values());
         var sortItems = items.sort(sortBySize);
         //console.log(sortItems);
         for(let item of sortItems) {
-            let type = item[2];
-            let itemTotalNum = item[0];
-            let itemTotalSize = item[1];
+            let itemTotalSize = item[2];
             let itemTotalFromatSize = formatBytes(itemTotalSize, 2);
-            let info = type + ": " + itemTotalNum + ": " + itemTotalFromatSize;
+            item[2] = itemTotalFromatSize;
+            let percent = itemTotalSize/gTotalSize;
+            item[3] = percent.toString();
+            let info = item.join(gInfoLinker);
             console.log(info);
         }
+
+        //3、统计的文件总大小
+        console.log("统计的文件总大小：" + formatBytes(gTotalSize, 2));
     }
 
     /*
@@ -195,9 +204,9 @@ export namespace WeMeetResCheck.CheckXml {
         使用指定的匹配模式，扫描指定目录下，指定名称的文件
         path：目录
         name：文件名
-        1、按文件大小输出：name + :  + size + :  + type  //名称 + 文件大小 + 文件类型
-        2、按文件名输出：name + ": " + num + ": " + totalSize  //名称 + 该文件数量 + 该文件总大小
-        3、按文件类型输出：type + ": " + num + ": " + totalSize  //类型 + 该类文件总数量 + 该类文件总大小
+        1、按文件大小输出：name + :  + size + :  + type  //名称 + 文件大小 + 文件类型\n" +
+        2、按文件名输出：name + :  + num + :  + totalSize + percent  //名称 + 该文件数量 + 该文件总大小 + 占比\n" +
+        3、按文件类型输出：type + :  + num + :  + totalSize + percent  //类型 + 该类文件总数量 + 该类文件总大小 + 占比\n"
      */
     function scanAnalysizeFile(path: string, name: string) {
         const fullPath = path + "/" + name;
@@ -232,11 +241,13 @@ export namespace WeMeetResCheck.CheckXml {
         //按文件类型 统计
         var item = gExtnameMap.get(type)
         if(item == undefined) {
-            item = [1, size, type];
+            item = [type, 1, size];
         }else {
-            item = [item[0] + 1, item[1] + size, type];
+            item = [type, item[1] + 1, item[2] + size];
         }
         gExtnameMap.set(type, item);
+
+        gTotalSize += size;
     }
 
     function isEmptyStr(s: string) {
@@ -252,9 +263,15 @@ export namespace WeMeetResCheck.CheckXml {
         return parseFloat((a / Math.pow(c, f)).toFixed(d)) + " " + e[f];
     }
 
+    function sortByNum(item: Array<any>, item1: Array<any>) {
+        let itemTotalNum = item[1];
+        let itemTotalNum1 = item1[1];
+        return itemTotalNum < itemTotalNum1 ? 1 : -1;
+    }
+
     function sortBySize(item: Array<any>, item1: Array<any>) {
-        let itemTotalSize = item[1];
-        let itemTotalSize1 = item1[1];
+        let itemTotalSize = item[2];
+        let itemTotalSize1 = item1[2];
         return itemTotalSize < itemTotalSize1 ? 1 : -1;
     }
 
