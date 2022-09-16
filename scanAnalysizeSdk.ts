@@ -17,7 +17,8 @@ let gInfoSeperates = /:|;|\n/;
 let gFilesInfo:Array<string> = [];
 let gFilesFormatInfo:Array<string> = [];
 let gExtnameSet = new Set();
-let gExtnameMap = new Map();
+let gExtnameMap = new Map(); //{type: [type,num,totalSize]}
+let gRepeatFileInfoMap = new Map(); //{name: [name,num,totalSize]}
 //文件分类 43项
 let extnames = [
     ' application/octet-stream',
@@ -108,6 +109,14 @@ export namespace WeMeetResCheck.CheckXml {
 
         console.log("\n########################\n");
         console.log("日志信息：");
+        console.log(
+            "1、按文件大小输出：name + :  + size + :  + type  //名称 + 文件大小 + 文件类型\n" +
+            "2、按文件名输出：name + :  + num + :  + totalSize  //名称 + 该文件数量 + 该文件总大小\n" +
+            "3、按文件类型输出：type + :  + num + :  + totalSize  //类型 + 该类文件总数量 + 该类文件总大小\n"
+        )
+        //1、按文件大小输出：name + :  + size + :  + type  //名称 + 文件大小 + 文件类型
+        console.log("1、按文件大小输出：name + :  + size + :  + type  //名称 + 文件大小 + 文件类型\n");
+
         let gFilesInfoSort = gFilesInfo.sort(sortInfoBySize);
         for(let item of gFilesInfoSort) {
             let items = item.split(gInfoSeperates);
@@ -120,12 +129,26 @@ export namespace WeMeetResCheck.CheckXml {
         }
         console.log(gFilesFormatInfo);
 
+        //3、按文件名输出：name + ": " + num + ": " + totalSize  //名称 + 该文件数量 + 该文件总大小
+        console.log("2、按文件名输出：name + :  + num + :  + totalSize  //名称 + 该文件数量 + 该文件总大小\n");
+        var itemFileInfos = Array.from(gRepeatFileInfoMap.values());
+        var sortItemFileInfos = itemFileInfos.sort(sortBySize);
+        //console.log(sortItems);
+        for(let item of sortItemFileInfos) {
+            let name = item[0];
+            let itemTotalNum = item[1];
+            let itemTotalSize = item[2];
+            let itemTotalFromatSize = formatBytes(itemTotalSize, 2);
+            let info = name + ": " + itemTotalNum + ": " + itemTotalFromatSize;
+            console.log(info);
+        }
+
         //输出文件类型
-        console.log("1、输出文件类型:\n");
+        console.log("3、输出文件类型:\n");
         console.log(gExtnameSet);
 
-        //按文件类型输出：type + ": " + num + ": " + totalFormatSize  //类型 + 该类文件总数量 + 该类文件总大小
-        console.log("2、按文件类型输出：type + :  + num + :  + totalSize  //类型 + 该类文件总数量 + 该类文件总大小\n");
+        //2、按文件类型输出：type + ": " + num + ": " + totalSize  //类型 + 该类文件总数量 + 该类文件总大小
+        console.log("4、按文件类型输出：type + :  + num + :  + totalSize  //类型 + 该类文件总数量 + 该类文件总大小\n");
         var items = Array.from(gExtnameMap.values());
         var sortItems = items.sort(sortBySize);
         //console.log(sortItems);
@@ -169,11 +192,12 @@ export namespace WeMeetResCheck.CheckXml {
     }
 
     /*
-        使用指定的匹配模式，扫描指定目录下，指定名称的文件 统计key使用信息，生成key使用文件
+        使用指定的匹配模式，扫描指定目录下，指定名称的文件
         path：目录
         name：文件名
-        按文件输出：name + ": " + Size + ": " + type //文件名 + 大小 + 类型
-        按文件类型输出：type + ": " + num + ": " + totalSize  //类型 + 该类文件总数量 + 该类文件总大小
+        1、按文件大小输出：name + :  + size + :  + type  //名称 + 文件大小 + 文件类型
+        2、按文件名输出：name + ": " + num + ": " + totalSize  //名称 + 该文件数量 + 该文件总大小
+        3、按文件类型输出：type + ": " + num + ": " + totalSize  //类型 + 该类文件总数量 + 该类文件总大小
      */
     function scanAnalysizeFile(path: string, name: string) {
         const fullPath = path + "/" + name;
@@ -191,6 +215,21 @@ export namespace WeMeetResCheck.CheckXml {
         }
         gExtnameSet.add(type);
 
+        //按文件大小 默认统计
+        const info = name + ": " + size + ": " + type; //+ ": " + fullPath ;
+        gFilesInfo.push(info);
+        //console.log(info);
+
+        //按文件名 统计
+        var itemInfo = gRepeatFileInfoMap.get(name)
+        if(itemInfo == undefined) {
+            itemInfo = [name, 1, size];
+        }else {
+            itemInfo = [name, itemInfo[1] + 1, itemInfo[2] + size];
+        }
+        gRepeatFileInfoMap.set(name, itemInfo);
+
+        //按文件类型 统计
         var item = gExtnameMap.get(type)
         if(item == undefined) {
             item = [1, size, type];
@@ -198,9 +237,6 @@ export namespace WeMeetResCheck.CheckXml {
             item = [item[0] + 1, item[1] + size, type];
         }
         gExtnameMap.set(type, item);
-        const info = name + ": " + size + ": " + type; //+ ": " + fullPath ;
-        gFilesInfo.push(info);
-        //console.log(info);
     }
 
     function isEmptyStr(s: string) {
